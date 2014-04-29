@@ -1,15 +1,15 @@
-    BCNRANDOM, last change 27/4/2014
+    BCNRAND, last change 27/4/2014
 
-	This is the C language version of the library bcnrandom, which  generates
+	This is the C language parallel version of the library bcnrand, which  generates
 	uniform random variates of type double on (0,1), using the linear
 	Congruential Generator (LCG) by J. Borwein and D. Bailey. 
 
 	There are two generators, the basic and the combined. The basic generator is of
 	a good quality and has the period of approx 10^15. Its advantage is that it is
 	very fast, twice as fast if compared to the very basic (and poor quality) standard 
-	C function rand(). The combined generator is a bit slower (still faster than rand()), 
-	but it has the period of 10^23, and it passes all the tests in BigCrush suite
-	of tests. The random numbers are not of cryptographic strength, but are well
+	C function rand(). The combined generator is a bit slower (still faster than 
+	rand()), but it has the period of 10^23, and it passes all the tests in BigCrush 
+	suite of tests. The random numbers are not of cryptographic strength, but are well
 	suited for numerical simulations, especially in parallel processes, where
 	the sam sequence of random variate is obtained when using any number of threads.
 	This is because of the valuable skip ahead feature. The seed is the starting 
