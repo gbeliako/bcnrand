@@ -137,8 +137,6 @@
 #ifndef BCNRANDGPU_H
 #define BCNRANDGPU_H
 
-
-
 typedef long long int64_tt ;
 typedef unsigned long long uint64_t ;
 
