@@ -63,14 +63,14 @@ static const int64_t	LCG_t		= 1073741824;								/* floor(m/2) */
 	r2lo = r2lo & 0x3FFFFFFFFFFFFFULL;\
 	rlo = r1lo - r2lo;\
 	if (r1lo<r2lo) rlo += 0x40000000000000ULL;\
-	if (rlo >= BCN_m) rlo -= BCN_m;
+	while (rlo >= BCN_m) rlo -= BCN_m;
 
 #define barrett_step_opt(rlo)\
 	qhi = __umul64hi(rlo, BCN_mulo);\
 	qlo = rlo * BCN_mulo;\
 	r2lo = (((qhi << 11) | (qlo >> 53)) * BCN_m)& 0x1FFFFFFFFFFFFFULL;\
 	rlo = 0x20000000000000ULL - r2lo;\
-	if (rlo >= BCN_m) rlo -= BCN_m;
+	while (rlo >= BCN_m) rlo -= BCN_m;
 
 
 __device__ __inline__	uint64_t	umul64(uint64_t	a, uint64_t	b, uint64_t	*hi)
@@ -359,7 +359,9 @@ __device__ __inline__ uint64_t randlcgSimple_increment( uint64_t *z )
 */
 __device__ __inline__ uint64_t randCombined_increment(uint64_t *SeedBCN_z_k, uint64_t *SeedLCG_z_k)
 {
-	return (int64_t)(randlcgSimple_increment(SeedLCG_z_k) -  barrett_step_opt(SeedBCN_z_k)) & ULL(0x7FFFFFFF); //800000007FFFFFFF
+	uint64_t qhi, qlo, r2lo;
+	barrett_step_opt(*SeedBCN_z_k);
+	return (int64_t)(randlcgSimple_increment(SeedLCG_z_k) -  *SeedBCN_z_k) & ULL(0x7FFFFFFF); //800000007FFFFFFF
 }
 
 
@@ -370,5 +372,3 @@ __device__ __inline__ uint64_t randCombined_increment(uint64_t *SeedBCN_z_k, uin
 
 
 
-
-#endif

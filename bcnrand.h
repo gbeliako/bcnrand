@@ -139,10 +139,16 @@
 
 typedef long long int64_tt ;
 typedef unsigned long long uint64_t ;
+typedef unsigned long uint32_t ;
 
-using std::string;
+#include <cstdio>
+#include <vector>
+//#include <string>
+#include <numeric>
+//using std::string;
 using std::vector;
-
+#define APPEND(x, y) x ## y
+#define ULL(x) APPEND(x, ull)
 
 #include "bcnrand.inl"
 
@@ -154,8 +160,8 @@ using std::vector;
 __device__ inline double bcnrandom_inline(uint64_t* seed)
 {
 	uint64_t qhi, qlo, r2lo;
-	
-	return BCN_minv * barrett_step_opt(*seed);	
+	barrett_step_opt(*seed);
+	return BCN_minv * (*seed);	
 }
 
 
@@ -229,7 +235,7 @@ __global__ void Kernel_initGeneratorCombined(uint64_t *md_SeedData, uint64_t *md
  *	d_SeedData: input, contains precomputed seeds for each thread
  *	WorkPerThread: input, length of each subsequence 
  */
-__global__ void Kernel_CountValues(unsigned int * const results, int64_tt *d_SeedData, const unsigned int WorkPerThread)
+__global__ void Kernel_CountValues(unsigned int * const results, uint64_t *d_SeedData, const unsigned int WorkPerThread)
 {
 	extern __shared__ unsigned int sdata[];
 	
@@ -239,7 +245,7 @@ __global__ void Kernel_CountValues(unsigned int * const results, int64_tt *d_See
 	uint64_t seed = (uint64_t)d_SeedData[blockIdx.x * blockDim.x * blockDim.y + tid];
 	
     // Count the number of numbers less than 0.9
-    unsigned int count = 0;
+    unsigned long int count = 0;
     for (int i = 0 ; i < WorkPerThread ; i++)
     {
         if( bcnrandom_inline(&seed)<0.9 )
@@ -268,7 +274,7 @@ __global__ void Kernel_CountValues(unsigned int * const results, int64_tt *d_See
  *	d_SeedData: 	input, contains precomputed seeds for each thread
  *	WorkPerThread: 	input, length of each subsequence 
  */
-__global__ void Kernel_Opt(double *d_OutputData, int64_tt *d_SeedData, unsigned int WorkPerThread)
+__global__ void Kernel_Opt(double *d_OutputData, uint64_t *d_SeedData, unsigned int WorkPerThread)
 {
     int tid = threadIdx.x + threadIdx.y * blockDim.x;
 	int gid = blockIdx.x * blockDim.x * blockDim.y * WorkPerThread + tid;
@@ -320,7 +326,7 @@ __global__ void Kernel_Opt(double *d_OutputData, int64_tt *d_SeedData, unsigned 
  *	d_SeedData: 	input, contains precomputed seeds for each thread
  *	WorkPerThread: 	input, length of each subsequence 
  */
-__global__ void Kernel_Constant_Unrolled(double *d_OutputData, double *d_SeedData, unsigned int WorkPerThread)
+__global__ void Kernel_Constant_Unrolled(double *d_OutputData, uint64_t *d_SeedData, unsigned int WorkPerThread)
 {
     int tid = threadIdx.x + threadIdx.y * blockDim.x;
 	int gid = blockIdx.x * blockDim.x * blockDim.y * WorkPerThread + tid;
@@ -363,8 +369,8 @@ void InlineGeneration(unsigned int numElements, double seed, unsigned int numThr
 {
 	//allocate mem for the result on device side
 	//GPU seed data
-	int64_tt *d_SeedData;	
-	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(int64_tt));
+	uint64_t *d_SeedData;	
+	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(uint64_t));
 	//GPU results data
 	unsigned int *d_OutputData; 
     cudaMalloc((void **)&d_OutputData, numBlocks * sizeof(unsigned int));
@@ -428,9 +434,9 @@ void TimeBCNMethod(unsigned int numElements, double seed, unsigned int numThread
 	
 	//allocate mem for the result on device side
 	double *d_OutputData;	//GPU output data
-	int64_tt *d_SeedData;	//GPU output data
+	uint64_t *d_SeedData;	//GPU output data
 	cudaMalloc((void **)&d_OutputData, numElements*sizeof(double));
-	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(double));
+	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(uint64_t));
 	
 	dim3 dimBlock(numThreadsPerBlock, 1, 1);
 	dim3 dimGrid(numBlocks, 1, 1);
@@ -468,7 +474,7 @@ void TimeBCNMethod(unsigned int numElements, double seed, unsigned int numThread
 	cudaEventDestroy(executeEnd);
 	
 	//Print Results
-	printf("BCN method, %f GNum/Sec, %f ms Execute Time, %f ms Setup Time\n", (1/(executeTimeSum/(numIterations*1.0)))*1000*numElements/1000000000, executeTimeSum/(numIterations*1.0), setupTime);
+	printf("BCN method, %f GNum/Sec, %f ms Execute Time, %f ms Setup Time\n", (1/(executeTimeSum/(numIterations*1.0)))*numElements/1000000, executeTimeSum/(numIterations*1.0), setupTime);
 }
 
 
@@ -485,7 +491,7 @@ void TimeBCNMethod(unsigned int numElements, double seed, unsigned int numThread
  *	d_SeedData, d_SeedData1: input, contains precomputed seeds for each thread
  *	WorkPerThread: input, length of each subsequence 
  */
-__global__ void Kernel_CountValues_Combined(unsigned int * const results, int64_tt *d_SeedData, int64_tt *d_SeedData1, const unsigned int WorkPerThread)
+__global__ void Kernel_CountValues_Combined(unsigned int * const results, uint64_t *d_SeedData, uint64_t *d_SeedData1, const unsigned int WorkPerThread)
 {
 	extern __shared__ unsigned int sdata[];
 	
@@ -533,11 +539,11 @@ void GenerationCombined(unsigned int numElements, double seed, unsigned int numT
 {
 	//allocate mem for the result on device side
 	//GPU seed data
-	int64_tt *d_SeedData;	
-	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(int64_tt));
+	uint64_t *d_SeedData;	
+	cudaMalloc((void **)&d_SeedData, numBlocks*numThreadsPerBlock*sizeof(uint64_t));
 	// for the aux generator
-	int64_tt *d_SeedData1;	
-	cudaMalloc((void **)&d_SeedDat1a, numBlocks*numThreadsPerBlock*sizeof(int64_tt));	
+	uint64_t *d_SeedData1;	
+	cudaMalloc((void **)&d_SeedData1, numBlocks*numThreadsPerBlock*sizeof(uint64_t));	
 	
 	//GPU results data
 
